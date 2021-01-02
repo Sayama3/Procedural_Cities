@@ -81,7 +81,7 @@ namespace ProceduralCities.CitiesCreation
 
         private IEnumerator CreateCity()
         {
-            TowerGenerator towerReference = new GameObject("Tower", new Type[] {typeof(TowerGenerator)}).GetComponent<TowerGenerator>();
+            TowerGenerator towerReference = new GameObject("Tower", new [] {typeof(TowerGenerator)}).GetComponent<TowerGenerator>();
             towerReference.gameObject.isStatic = true;
             
             
@@ -129,9 +129,6 @@ namespace ProceduralCities.CitiesCreation
                     {
                         currentOffset = new Vector3
                         {
-                            // x = Mathf.Max(cumulatedPos[x - 1][z].x,cumulatedPos[x][z - 1].x),
-                            // y = firstOffset.y,
-                            // z = Mathf.Max(cumulatedPos[x - 1][z].z,cumulatedPos[x][z - 1].z)
                             x = cumulatedPos[x - 1][z].x,
                             y = firstOffset.y,
                             z = cumulatedPos[x][z - 1].z
@@ -167,41 +164,12 @@ namespace ProceduralCities.CitiesCreation
                         quad.SetParent(transform);
                     }
                 }
-                //yield return null;
             }
             
-            DestroyImmediate(towerReference,false);
+            DestroyImmediate(towerReference.gameObject,false);
             yield return new WaitForEndOfFrame();
-            // yield return new WaitForFixedUpdate();
-            //
-            // if (checkOverlap) StartCoroutine(CheckOverlap());
-            // else StartCoroutine(DeleteCollider());
         }
 
-        // private IEnumerator CheckOverlap()
-        // {
-        //     for (int x = 0; x < numberOfTower.x; x++)
-        //     {
-        //         for (int z = 0; z < numberOfTower.y; z++)
-        //         {
-        //             _towerGenerators[x,z]?.CheckCollision();
-        //         }
-        //     }
-        //     yield return null;
-        // }
-        //
-        // private IEnumerator DeleteCollider()
-        // {
-        //     for (int x = 0; x < numberOfTower.x; x++)
-        //     {
-        //         for (int z = 0; z < numberOfTower.y; z++)
-        //         {
-        //             _towerGenerators[x,z].DestroyCollider();
-        //         }
-        //     }
-        //     yield return null;
-        // }
-        
         #endregion
 
         #region Coroutine
