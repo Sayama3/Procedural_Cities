@@ -25,7 +25,9 @@ namespace ProceduralCities.CameraManager
         [Header("Zoom :")] public bool useZoom = true;
         [SerializeField] private Vector2 _zoomClamp = new Vector2(10, 60);
 
-        [Header("Event :")] public UnityEvent<Vector3> OnAngleChange;
+        [Header("Event :")] 
+        public UnityEvent<Vector3> OnAngleChange;
+        public UnityEvent<bool> OnCursorModeToggle;
 
         [Header("Cursor :")] 
         [SerializeField] private CursorLockMode defaultLockMode = CursorLockMode.Locked;
@@ -62,6 +64,7 @@ namespace ProceduralCities.CameraManager
             {
                 Cursor.lockState = defaultLockMode;
                 Cursor.visible = false;
+                OnCursorModeToggle?.Invoke(!_hideCursor);
             }
 
             #endregion
@@ -169,7 +172,11 @@ namespace ProceduralCities.CameraManager
 
             if(!string.IsNullOrEmpty(toggleCursorInput))
             {
-                if (Input.GetButtonDown(toggleCursorInput)) _hideCursor = !_hideCursor;
+                if (Input.GetButtonDown(toggleCursorInput))
+                {
+                    _hideCursor = !_hideCursor;
+                    OnCursorModeToggle?.Invoke(!_hideCursor);
+                }
                 
                 if (_hideCursor)
                 {

@@ -8,11 +8,20 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 using System.Linq;
+using TMPro;
 
 namespace ProceduralCities.CitiesCreation
 {
+    [ExecuteAlways]
     public class CityGenerator : MonoBehaviour
     {
+        [Title("General Parameter :")] 
+        [SerializeField] private bool generateOnStart;
+        [SerializeField] private bool stopAtEachBuilding;
+        [SerializeField, Range(0, 1),ShowIf("stopAtEachBuilding")] private float waitEachBuilding;
+        [SerializeField] private bool stopAtEachRow;
+        [SerializeField, Range(0, 1),ShowIf("stopAtEachRow")] private float waitEachRow;
+        
         [Title("Camera :")] 
         [SerializeField] private Camera camera;
         [SerializeField] private Vector3 cameraOffset;
@@ -32,6 +41,7 @@ namespace ProceduralCities.CitiesCreation
         [Title("Tower Parameters :")]
         [SerializeField] private Material _tempMat;
         [SerializeField,MinValue(float.Epsilon)] private float materialDivider = 1f;
+        [SerializeField,MinValue(float.Epsilon)] private float groundMaterialTilling = 1f;
         [ShowInInspector, ReadOnly] private int NumberOfChildren => transform.childCount;
 
         //Private :
@@ -41,13 +51,15 @@ namespace ProceduralCities.CitiesCreation
         private Vector3[,] _spacings;
         
         
-        private void Start() => CreateCities();
-        
+        private void Start()
+        {
+            if (generateOnStart) CreateCities();
+        }
 
         #region City Creation
 
         [TitleGroup("Methods :")]
-        [Button(ButtonSizes.Medium)]
+        [Button(ButtonSizes.Medium,ButtonStyle.FoldoutButton)]
         public void CreateCities()
         {
             DestroyAllChildren();
@@ -62,16 +74,22 @@ namespace ProceduralCities.CitiesCreation
             int[] Xspace = new int[numberOfTower.x];
             int[] Zspace = new int[numberOfTower.y];
 
+            float xoff = 0f;
+            float zoff = 0f;
+            
             for (int i = 0; i < numberOfTower.x; i++)
             {
                 X[i] = (int)Random.Range(towerSize.c0.x, towerSize.c1.x);
                 Xspace[i] = (int)Random.Range(spaceBetweenTower.c0.x,spaceBetweenTower.c1.x);
+                xoff += X[i] + Xspace[i];
             }
             for (int i = 0; i < numberOfTower.y; i++)
             {
                 Z[i] = (int)Random.Range(towerSize.c0.y,towerSize.c1.y);
                 Zspace[i] = (int)Random.Range(spaceBetweenTower.c0.y,spaceBetweenTower.c1.y);
+                zoff += Z[i] + Zspace[i];
             }
+            yield return null;
             
 
             _towers = new Vector3[numberOfTower.x, numberOfTower.y];
@@ -99,16 +117,53 @@ namespace ProceduralCities.CitiesCreation
             }
 
             yield return null;
-            StartCoroutine(CreateCity());
+            StartCoroutine(CreateCity(xoff,zoff,stopAtEachBuilding,stopAtEachRow));
         }
 
-        private IEnumerator CreateCity()
+        /// <summary>
+        /// Function creating every building with parameters previously created.
+        /// </summary>
+        /// <param name="xSize">The estimated size of the city in X (don't right if you don't know)</param>
+        /// <param name="zSize">The estimated size of the city in Z (don't right if you don't know)</param>
+        /// <param name="stopAtEachBuilding">
+        ///     Whether or not we end the frame after each building is created or not<br />
+        ///     Enabling this option greatly increases the FPS but also greatly increases the city creation time.<br />
+        ///     For example, for a city of 10.000 buildings (100x100), it will take a 10.000 frames. Assuming 0.02s per frame, it will take 200s equivalent to 3 minutes and 20 seconds.
+        /// </param>
+        /// <param name="stopAtEachRow">
+        ///     Whether or not we end the frame after each row of building is created or not<br />
+        ///     Enabling this option increases the FPS but also increases the city creation time.<br />
+        ///     For example, for a city of 10.000 buildings (100x100), it will take a 100 frames. Assuming 0.02s per frame, it will take 100s equivalent to 1 minutes and 40 seconds.
+        ///     (note that the number of row is describe by the x component.)
+        /// </param>
+        /// <returns></returns>
+        private IEnumerator CreateCity(float xSize = 0f, float zSize = 0f,bool stopAtEachBuilding = false, bool stopAtEachRow = false)
         {
+            //Positioning the camera in the center of the city
+            var cameraPos = transform.position + cameraOffset;
+            cameraPos.y += towerHeight.y;
+            camera.transform.position = cameraPos;
+            camera.farClipPlane = (numberOfTower.x * numberOfTower.y)*2f;
+            
+            //Creating the ground
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad).transform;
+            Material material = (quad.GetComponent<MeshRenderer>().material = _tempMat);
+            material.SetVector("_BaseMap_ST", new Vector4(groundMaterialTilling, groundMaterialTilling, 0, 0));
+            
+            quad.name = "Ground";
+            quad.position = transform.position;
+            var scale = new Vector3(xSize,zSize,1f);
+            quad.localScale = scale;
+            quad.Rotate(Vector3.right,90f);
+            quad.SetParent(transform);
+            
+            yield return null;
+            
             TowerGenerator towerReference = new GameObject("Tower", new [] {typeof(TowerGenerator)}).GetComponent<TowerGenerator>();
             towerReference.gameObject.isStatic = true;
             
             
-            Vector3 firstOffset = transform.position;
+            Vector3 firstOffset = transform.position - new Vector3(xSize/2f,0,zSize/2f);
             _towerGenerators = new TowerGenerator[numberOfTower.x, numberOfTower.y];
             
             Vector3[][] cumulatedPos = new Vector3[numberOfTower.x][];
@@ -116,6 +171,8 @@ namespace ProceduralCities.CitiesCreation
             {
                 cumulatedPos[index] = new Vector3[numberOfTower.y];
             }
+            
+            yield return null;
 
             for (int x = 0; x < numberOfTower.x; x++)
             {
@@ -169,36 +226,26 @@ namespace ProceduralCities.CitiesCreation
                     _towerGenerators[x,z] = Instantiate(towerReference, pos, Quaternion.identity, transform);
                     _towerGenerators[x, z].name += " - (" + x + "," + z + ")";
                     _towerGenerators[x,z].Initialize(_towers[x, z],_tempMat,materialDivider);
-
-                    if (x == numberOfTower.x-1 && z == numberOfTower.y-1)
-                    {
-                        var cameraPos = ((pos-transform.position)/2f)+cameraOffset;
-                        cameraPos.y += towerHeight.y;
-                        camera.transform.position = cameraPos;
-                        var quad = GameObject.CreatePrimitive(PrimitiveType.Quad).transform;
-                        
-                        cameraPos.y = transform.position.y;
-                        quad.position = cameraPos;
-                        var scale = pos - transform.position;
-                        scale.y = scale.z;
-                        scale.z = 1f;
-                        quad.localScale = scale;
-                        quad.Rotate(Vector3.right,90f);
-                        quad.SetParent(transform);
-                    }
+                    
+                    if(stopAtEachBuilding) yield return waitEachBuilding <= Time.deltaTime? null:new WaitForSeconds(waitEachBuilding);
                 }
+                
+                if(stopAtEachRow) yield return waitEachRow <= Time.deltaTime? null:new WaitForSeconds(waitEachRow);
             }
-            
+
+            yield return null;
+
             DestroyImmediate(towerReference.gameObject,false);
-            yield return new WaitForEndOfFrame();
         }
 
         #endregion
 
         [TitleGroup("Methods :")]
         [Button(ButtonSizes.Medium)]
-        private void DestroyAllChildren()
+        public void DestroyAllChildren()
         {
+            StopAllCoroutines();
+            
             if (NumberOfChildren > 0)
             {
                 List<GameObject> children = new List<GameObject>();
@@ -214,6 +261,16 @@ namespace ProceduralCities.CitiesCreation
             }
         }
         
+        public void SetWaitRow(bool value) => stopAtEachRow = value;
+        public void SetWaitBuilding(bool value) => stopAtEachBuilding = value;
+        public void SetWaitRow(float value) => waitEachRow = value;
+        public void SetWaitBuilding(float value) => waitEachBuilding = value;
+        public void SetWaitRow(TextMeshProUGUI text) => text.text = waitEachRow.ToString("F4");
+        public void SetWaitBuilding(TextMeshProUGUI text) => text.text = waitEachBuilding.ToString("F4");
+        
+
+
+
     }
 
 }
