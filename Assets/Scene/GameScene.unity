@@ -2355,6 +2355,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5591cd2378a5bb04683c3ab48401c098, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _material: {fileID: 0}
   _size: {x: 0, y: 0, z: 0}
 --- !u!33 &1459962160
 MeshFilter:
@@ -3214,7 +3215,7 @@ MonoBehaviour:
     c1:
       x: 20
       y: 20
-  _tempMat: {fileID: 2100000, guid: 1ff27be4798da4c48bc4242b5a01e0b1, type: 2}
+  _tempMat: {fileID: 2100000, guid: cfda2991d11850d4b8dbd6fb34f549f3, type: 2}
   materialDivider: 10
   groundMaterialTilling: 1
 --- !u!4 &2087461864
