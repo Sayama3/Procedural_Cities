@@ -2,13 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
-using Sirenix.Utilities;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
-using System.Linq;
-using TMPro;
 
 namespace ProceduralCities.CitiesCreation
 {
@@ -17,10 +14,6 @@ namespace ProceduralCities.CitiesCreation
     {
         [Title("General Parameter :")] 
         [SerializeField] private bool generateOnStart;
-        [SerializeField] private bool stopAtEachBuilding;
-        [SerializeField, Range(0, 1),ShowIf("stopAtEachBuilding")] private float waitEachBuilding;
-        [SerializeField] private bool stopAtEachRow;
-        [SerializeField, Range(0, 1),ShowIf("stopAtEachRow")] private float waitEachRow;
         
         [Title("Camera :")] 
         [SerializeField] private Camera camera;
@@ -38,11 +31,16 @@ namespace ProceduralCities.CitiesCreation
         [SerializeField,MinValue(1f)] private float2x2 towerSize; [PropertySpace]
         [SerializeField,MinValue(0f)] private float2x2 spaceBetweenTower;
         
+        [FormerlySerializedAs("_tempMat")]
         [Title("Tower Parameters :")]
-        [SerializeField] private Material _tempMat;
+        [SerializeField,ListDrawerSettings(AlwaysAddDefaultValue = true,NumberOfItemsPerPage = 2)] 
+        private List<TowerMaterialsAssembly> listTowerAssembly = new List<TowerMaterialsAssembly>();
+        [SerializeField] private Material groundMat;
+        [SerializeField] private Mesh _mesh;
         [SerializeField,MinValue(float.Epsilon)] private float materialDivider = 1f;
         [SerializeField,MinValue(float.Epsilon)] private float groundMaterialTilling = 1f;
         [ShowInInspector, ReadOnly] private int NumberOfChildren => transform.childCount;
+        
 
         //Private :
         private TowerGenerator[,] _towerGenerators;
@@ -117,7 +115,7 @@ namespace ProceduralCities.CitiesCreation
             }
 
             yield return null;
-            StartCoroutine(CreateCity(xoff,zoff,stopAtEachBuilding,stopAtEachRow));
+            StartCoroutine(CreateCity(xoff,zoff));
         }
 
         /// <summary>
@@ -125,39 +123,9 @@ namespace ProceduralCities.CitiesCreation
         /// </summary>
         /// <param name="xSize">The estimated size of the city in X (don't right if you don't know)</param>
         /// <param name="zSize">The estimated size of the city in Z (don't right if you don't know)</param>
-        /// <param name="stopAtEachBuilding">
-        ///     Whether or not we end the frame after each building is created or not<br />
-        ///     Enabling this option greatly increases the FPS but also greatly increases the city creation time.<br />
-        ///     For example, for a city of 10.000 buildings (100x100), it will take a 10.000 frames. Assuming 0.02s per frame, it will take 200s equivalent to 3 minutes and 20 seconds.
-        /// </param>
-        /// <param name="stopAtEachRow">
-        ///     Whether or not we end the frame after each row of building is created or not<br />
-        ///     Enabling this option increases the FPS but also increases the city creation time.<br />
-        ///     For example, for a city of 10.000 buildings (100x100), it will take a 100 frames. Assuming 0.02s per frame, it will take 100s equivalent to 1 minutes and 40 seconds.
-        ///     (note that the number of row is describe by the x component.)
-        /// </param>
         /// <returns></returns>
-        private IEnumerator CreateCity(float xSize = 0f, float zSize = 0f,bool stopAtEachBuilding = false, bool stopAtEachRow = false)
+        private IEnumerator CreateCity(float xSize = 0f, float zSize = 0f)
         {
-            //Positioning the camera in the center of the city
-            var cameraPos = transform.position + cameraOffset;
-            cameraPos.y += towerHeight.y;
-            camera.transform.position = cameraPos;
-            camera.farClipPlane = (numberOfTower.x * numberOfTower.y)*2f;
-            
-            //Creating the ground
-            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad).transform;
-            Material material = (quad.GetComponent<MeshRenderer>().material = _tempMat);
-            material.SetVector("_BaseMap_ST", new Vector4(groundMaterialTilling, groundMaterialTilling, 0, 0));
-            
-            quad.name = "Ground";
-            quad.position = transform.position;
-            var scale = new Vector3(xSize,zSize,1f);
-            quad.localScale = scale;
-            quad.Rotate(Vector3.right,90f);
-            quad.SetParent(transform);
-            
-            yield return null;
             
             TowerGenerator towerReference = new GameObject("Tower", new [] {typeof(TowerGenerator)}).GetComponent<TowerGenerator>();
             towerReference.gameObject.isStatic = true;
@@ -174,8 +142,9 @@ namespace ProceduralCities.CitiesCreation
             
             yield return null;
 
-            for (int x = 0; x < numberOfTower.x; x++)
+            for(int x = 0; x<numberOfTower.x; x++)
             {
+
                 for (int z = 0; z < numberOfTower.y; z++)
                 {
                     Vector3 currentOffset;
@@ -225,14 +194,39 @@ namespace ProceduralCities.CitiesCreation
                     
                     _towerGenerators[x,z] = Instantiate(towerReference, pos, Quaternion.identity, transform);
                     _towerGenerators[x, z].name += " - (" + x + "," + z + ")";
-                    _towerGenerators[x,z].Initialize(_towers[x, z],_tempMat,materialDivider);
-                    
-                    if(stopAtEachBuilding) yield return waitEachBuilding <= Time.deltaTime? null:new WaitForSeconds(waitEachBuilding);
+                    int index = Random.Range(0, listTowerAssembly.Count);
+                    _towerGenerators[x, z].Initialize(_towers[x, z], _mesh, listTowerAssembly[index], materialDivider);
+
+                    if (numberOfTower.x / 2 == x && numberOfTower.y / 2 == z)
+                    {
+                        //Positioning the camera in the center of the city
+                        var cameraPos = pos;
+                        cameraPos.y += size.y;
+                        cameraPos += cameraOffset;
+                        //cameraPos.y += towerHeight.y;
+                        camera.transform.position = cameraPos;
+                        camera.farClipPlane = (numberOfTower.x * numberOfTower.y) * 2f;
+                    }
+
                 }
                 
-                if(stopAtEachRow) yield return waitEachRow <= Time.deltaTime? null:new WaitForSeconds(waitEachRow);
             }
 
+            yield return null;
+            
+            //Creating the ground
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad).transform;
+            DestroyImmediate(quad.GetComponent<Collider>(),false);
+            Material material = (quad.GetComponent<MeshRenderer>().material = groundMat);
+            material.SetVector("_BaseMap_ST", new Vector4(groundMaterialTilling, groundMaterialTilling, 0, 0));
+            
+            quad.name = "Ground";
+            quad.position = transform.position;
+            var scale = new Vector3(xSize,zSize,1f);
+            quad.localScale = scale;
+            quad.Rotate(Vector3.right,90f);
+            quad.SetParent(transform);
+            
             yield return null;
 
             DestroyImmediate(towerReference.gameObject,false);
@@ -244,6 +238,7 @@ namespace ProceduralCities.CitiesCreation
         [Button(ButtonSizes.Medium)]
         public void DestroyAllChildren()
         {
+            if (GPULoader.Instance !=null) GPULoader.Instance.Clear();
             StopAllCoroutines();
             
             if (NumberOfChildren > 0)
@@ -260,17 +255,22 @@ namespace ProceduralCities.CitiesCreation
                 }
             }
         }
+    }
+
+    [Serializable]
+    public struct TowerMaterialsAssembly
+    {
+        public Material BackGroundMat;
+        public Material DoorMat;
+        public Material WindowsLitMat;
+        public Material WindowsUnlitMat;
         
-        public void SetWaitRow(bool value) => stopAtEachRow = value;
-        public void SetWaitBuilding(bool value) => stopAtEachBuilding = value;
-        public void SetWaitRow(float value) => waitEachRow = value;
-        public void SetWaitBuilding(float value) => waitEachBuilding = value;
-        public void SetWaitRow(TextMeshProUGUI text) => text.text = waitEachRow.ToString("F4");
-        public void SetWaitBuilding(TextMeshProUGUI text) => text.text = waitEachBuilding.ToString("F4");
-        
-
-
-
+        public Material[] Materials => new Material[] {
+                BackGroundMat,
+                DoorMat,
+                WindowsLitMat,
+                WindowsUnlitMat,
+            };
     }
 
 }

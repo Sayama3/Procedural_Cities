@@ -1,8 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Sirenix.OdinInspector;
-using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -10,40 +9,40 @@ namespace ProceduralCities.CitiesCreation
 {
     public class TowerGenerator : MonoBehaviour
     {
-        [SerializeField,ReadOnly]
-        private Material _material;
+        [SerializeField] 
+        private Mesh _mesh;
         [SerializeField,ReadOnly]
         private Vector3 _size;
 
-        //private BoxCollider box;
+        [SerializeField, ReadOnly] 
+        private TowerMaterialsAssembly towerMaterialsAssembly;
+        GameObject quadTemp;
 
-        [ShowInInspector, ReadOnly]
-        private float ChildCount
-        {
-            get
-            {
-                int totalCount = 0;
-                for (int i = 0; i < transform.childCount; i++)
-                    totalCount += transform.GetChild(i).childCount;
-                return totalCount;
-            }
-        }
+        private BoxCollider box;
+        private GPULoader _gpuLoader;
+
+        [ShowInInspector, ReadOnly] private float ChildCount => transform.childCount;
 
         private static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
 
         //TODO: generate myself the mesh
         [ShowIf("@ChildCount == 0")]
         [Button(ButtonSizes.Medium,ButtonStyle.FoldoutButton)]
-        public void Initialize(Vector3 size, Material material, float materialDivider = 1f)
+        public void Initialize(Vector3 size,Mesh mesh, TowerMaterialsAssembly materials, float materialDivider = 1f, bool createCollider = false)
         {
             _size = size;
-            _material = new Material(material);
-            CreateCube(size,materialDivider);
+            _mesh = mesh;
+            towerMaterialsAssembly = materials;
+            _gpuLoader = GPULoader.Instance;
             
-            // Creation of the collider if needed
-            // box = gameObject.AddComponent<BoxCollider>();
-            // box.center = new Vector3(0, size.y / 2f);
-            // box.size = size;
+            CreateCube(size,materialDivider);
+            if(createCollider)
+            {
+                //Creation of the collider if needed
+                box = gameObject.AddComponent<BoxCollider>();
+                box.center = new Vector3(0, size.y / 2f);
+                box.size = size;
+            }
         }
         
         private void CreateCube (Vector3 size, float matDiv)
@@ -71,83 +70,26 @@ namespace ProceduralCities.CitiesCreation
             
             float xmax = 2f * size.y + 2f * size.x;
             float ymax = 2f * size.y + size.z;
+
+            var faces = new Face[] {Face.Back, Face.Forward, Face.Left, Face.Right};
+            var faceDoor = faces[Random.Range(0, faces.Length)];
+            //List<bool> lits;
+            // lits = new List<bool>((int) size.y);
+            // for (int i = 0; i < lits.Capacity; i++)
+            //     lits.Add(RandomBool);
             
-            // Vector3[] vertices = {
-            //     new Vector3(-size.x/2f, size.y, -size.z/2f),
-            //     new Vector3(-size.x/2f, 0, -size.z/2f),
-            //     new Vector3(size.x/2f, size.y, -size.z/2f),
-            //     new Vector3(size.x/2f, 0, -size.z/2f),
-            //
-            //     new Vector3(-size.x/2f, 0, size.z/2f),
-            //     new Vector3(size.x/2f, 0, size.z/2f),
-            //     new Vector3(-size.x/2f, size.y, size.z/2f),
-            //     new Vector3(size.x/2f, size.y, size.z/2f),
-            //
-            //     new Vector3(-size.x/2f, size.y, -size.z/2f),
-            //     new Vector3(size.x/2f, size.y, -size.z/2f),
-            //
-            //     new Vector3(-size.x/2f, size.y, -size.z/2f),
-            //     new Vector3(-size.x/2f, size.y, size.z/2f),
-            //
-            //     new Vector3(size.x/2f, size.y, -size.z/2f),
-            //     new Vector3(size.x/2f, size.y, size.z/2f),
-            // };
-            //
-            // int[] triangles = {
-            //     0, 2, 1, // front
-            //     1, 2, 3,
-            //     4, 5, 6, // back
-            //     5, 7, 6,
-            //     6, 7, 8, //top
-            //     7, 9 ,8, 
-            //     1, 3, 4, //bottom
-            //     3, 5, 4,
-            //     1, 11,10,// left
-            //     1, 4, 11,
-            //     3, 12, 5,//right
-            //     5, 12, 13
-            // };
-            //
-            // Vector2[] uvs = {
-            //     new Vector2(0, (size.y+size.z)/ymax),
-            //     new Vector2((size.y)/xmax, (size.y+size.z)/ymax),
-            //     new Vector2(0, (size.y)/ymax),
-            //     new Vector2((size.y)/xmax, (size.y)/ymax),
-            //
-            //     new Vector2((size.y+size.x)/xmax, (size.y+size.z)/ymax),
-            //     new Vector2((size.y+size.x)/xmax, (size.y)/ymax),
-            //     new Vector2((size.y+size.x+size.y)/xmax, (size.y+size.z)/ymax),
-            //     new Vector2((size.y+size.x+size.y)/xmax, (size.y)/ymax),
-            //
-            //     new Vector2(1, (size.y+size.z)/ymax),
-            //     new Vector2(1, (size.y)/ymax),
-            //
-            //     new Vector2((size.y)/xmax, 1),
-            //     new Vector2((size.y+size.x)/xmax, 1),
-            //
-            //     new Vector2((size.y)/xmax, 0),
-            //     new Vector2((size.y+size.x)/xmax, 0),
-            // };
-            //
-            // mesh.Clear ();
-            // mesh.vertices = vertices;
-            // mesh.triangles = triangles;
-            // mesh.uv = uvs;
-            // mesh.Optimize ();
-            // mesh.RecalculateNormals ();
-            CreateFace(a, f, Face.Back);
-            CreateFace(d, g, Face.Forward);
-            
-            CreateFace(a,h,Face.Left);
-            CreateFace(b,g,Face.Right);
-            
-            CreateFace(e,g,Face.Up);
-            CreateFace(a,c,Face.Down);
-            
-            _material.SetVector(BaseMapSt, new Vector4(xmax/matDiv, ymax/matDiv, 0, 0));
+            bool even = RandomBool;
+            CreateFace(a, f, Face.Back,even,faceDoor==Face.Back);
+            CreateFace(d, g, Face.Forward,even,faceDoor==Face.Forward);
+
+            CreateFace(a, h, Face.Left,even,faceDoor==Face.Left);
+            CreateFace(b, g, Face.Right,even,faceDoor==Face.Right);
+
+            CreateFace(e, g, Face.Up,even);
+            //CreateFace(a, c, Face.Down);
         }
 
-        private void CreateFace(Vector3 a, Vector3 b, Face face)
+        private void CreateFace(Vector3 a, Vector3 b, Face face,bool even, bool hasDoor = false,List<bool> windowsLits = null)
         {
             #region Setup
 
@@ -155,6 +97,8 @@ namespace ProceduralCities.CitiesCreation
             Vector2 _b;
             float missingAxis;
             Vector3 normal;
+            
+            bool isRoof = face == Face.Up;
             
             if(face == Face.Up || face ==  Face.Down)
             { 
@@ -185,15 +129,17 @@ namespace ProceduralCities.CitiesCreation
 
             #endregion
 
-            GameObject quadTemp = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            DestroyImmediate(quadTemp.GetComponent<Collider>(),false);
-            Transform parent;
-            (parent = new GameObject(face.ToString()).transform).SetParent(transform);
-
+            //Set ProceduralFace Value
+            
+            float doorIndex = Random.Range(((int) 0), ((int) (_b.x - _a.x))-2) + _a.x+1;
+            
             for (float y = _a.y; y < _b.y; y++)
             {
+                           
                 for (float x = _a.x; x < _b.x; x++)
                 {
+                    #region Get Matrix
+
                     Vector3 position;
                     Quaternion rotation;
                     var realX = x + .5f;
@@ -216,17 +162,58 @@ namespace ProceduralCities.CitiesCreation
                     else
                         throw new ArgumentOutOfRangeException(nameof(face), face, null);
 
-                    var quad = Instantiate(quadTemp,position,rotation,parent);
-                    quad.name = "Quad - " + face + " - ( " + x.ToString("F1") +" : " + y.ToString("F1") +" )";
+                    //var quadName = "Quad - " + face + " - ( " + x.ToString("F1") + " : " + y.ToString("F1") + " )";
                     
-                    //TODO: set the material depending on the procedural generation
-                    Material tempMat = new Material(_material);
-                    quad.GetComponent<MeshRenderer>().material = tempMat;
-                    tempMat.color = Random.ColorHSV();
+                    ObjData obj = new ObjData(position, rotation, Vector3.one);
+                    #endregion
+
+                    #region Load Obj in GPULoader
+
+                    Material mat = towerMaterialsAssembly.BackGroundMat;
+                    if(!isRoof)
+                    {
+                        if (y < 2) //Ground
+                        {
+                            if (hasDoor && Math.Abs(doorIndex - x) < 0.1f)
+                            {
+                                mat = towerMaterialsAssembly.DoorMat;
+                            }
+                        }
+                        else if (y < _b.y)
+                        {
+                            bool isEven = Mathf.RoundToInt(y - _a.y)% 2 == 0;
+                            if ((isEven && even) || (!isEven && !even))
+                            {
+                                bool windowsLit = windowsLits?[Mathf.RoundToInt(y - _a.y)]??RandomBool;
+                                if (windowsLit)
+                                {
+                                    mat = towerMaterialsAssembly.WindowsLitMat;
+                                }
+                                else
+                                {
+                                    mat = towerMaterialsAssembly.WindowsUnlitMat;
+                                }
+                            }
+                        }
+                    }
+                    
+                    //Set the matrix4x4 in the matrix corresponding to it's material and mesh
+                    var tpObj = new TypeObj(_mesh, mat);
+                    if (!_gpuLoader.DicBatches.ContainsKey(tpObj))
+                    {
+                        _gpuLoader.DicBatches.Add(tpObj, new List<List<ObjData>>());
+                    }
+
+                    if (_gpuLoader.DicBatches[tpObj].Count == 0 || _gpuLoader.DicBatches[tpObj][_gpuLoader.DicBatches[tpObj].Count-1].Count >= 1000)
+                    {
+                        _gpuLoader.DicBatches[tpObj].Add(new List<ObjData>());
+                    }
+                    _gpuLoader.DicBatches[tpObj][_gpuLoader.DicBatches[tpObj].Count-1].Add(obj);
+
+                    #endregion
+                    
                 }
             }
-
-            DestroyImmediate(quadTemp, false);
         }
 
         [Button(ButtonSizes.Medium, ButtonStyle.FoldoutButton)]
@@ -237,20 +224,36 @@ namespace ProceduralCities.CitiesCreation
                 DestroyImmediate(transform.GetChild(i).gameObject);
             }
             _size = Vector3.zero;
-            _material = null;
+            towerMaterialsAssembly = new TowerMaterialsAssembly();
 
             if (TryGetComponent(out Collider col))
                 DestroyImmediate(col);
         }
 
-        public enum Face
-        {
-            Up,
-            Forward,
-            Right,
-            Down,
-            Back,
-            Left,
-        }
+        public static bool RandomBool => Random.value > 0.5f;
     }
+    public enum Face
+    {
+        Up,
+        Forward,
+        Right,
+        Down,
+        Back,
+        Left,
+    }
+
+    public struct ObjData
+     {
+         public ObjData(Vector3 p, Quaternion r, Vector3 s)
+         {
+             pos = p;
+             scale = s;
+             rot = r;
+         }
+         public Vector3 pos;
+         public Quaternion rot;
+         public Vector3 scale;
+
+         public Matrix4x4 matrix => Matrix4x4.TRS(pos, rot, scale);
+     }
 }
