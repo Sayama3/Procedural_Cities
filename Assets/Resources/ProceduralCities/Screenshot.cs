@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace ProceduralCities
 {
-    public class Screenshot360 : MonoBehaviour
+    public class Screenshot : MonoBehaviour
     {
         [SerializeField] private string path;
         [SerializeField] private KeyCode screenshotKey = KeyCode.F10;
