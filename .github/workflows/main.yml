@@ -1,0 +1,117 @@
+name: Build Procedural Cities
+
+on:
+#  push:
+#    branches:
+#      - "main"
+#    tags:
+#      - "v*.*"
+#  pull_request: {}
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build for ${{ matrix.targetPlatform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        targetPlatform:
+          - StandaloneOSX # Build a macOS standalone (Intel 64-bit).
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          - StandaloneLinux64 # Build a Linux 64-bit standalone.
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+          lfs: true
+      - uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}
+          restore-keys: Library-
+      - uses: game-ci/unity-builder@v2
+        id: buildStep
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: ${{secrets.GAME_NAME}}
+          versioning: Semantic
+      - uses: actions/upload-artifact@v3
+        if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+        with:
+          name: ${{secrets.GAME_NAME}}-${{ matrix.targetPlatform }}-${{steps.buildStep.outputs.buildVersion}}
+          path: |
+            build/${{ matrix.targetPlatform }}
+            !build/${{ matrix.targetPlatform }}/*DoNotShip*/
+      - name: Create version file
+        if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+        run: touch version
+      - name: Write game version in the version file
+        if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+        run: echo "${{steps.buildStep.outputs.buildVersion}}" > version
+      - uses: actions/upload-artifact@v3
+        if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+        with:
+          name: version
+          path: version
+
+  releaseToGihub:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
+    steps:
+      - name: Download Version Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: version
+          path: ./version-artifact
+      - name: Read version file
+        id: version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./version-artifact/version
+          trim: true
+      - name: Download StandaloneWindows64 Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{secrets.GAME_NAME}}-StandaloneWindows64-${{steps.version.outputs.content}}
+          path: build/${{secrets.GAME_NAME}}_StandaloneWindows64
+
+      - name: Download StandaloneLinux64 Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{secrets.GAME_NAME}}-StandaloneLinux64-${{steps.version.outputs.content}}
+          path: build/${{secrets.GAME_NAME}}_StandaloneLinux64
+
+      - name: Download StandaloneOSX Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{secrets.GAME_NAME}}-StandaloneOSX-${{steps.version.outputs.content}}
+          path: build/${{secrets.GAME_NAME}}_StandaloneOSX
+
+      - name: Compress linux Build
+        run: tar -zcvf "${{secrets.GAME_NAME}}-StandaloneLinux64-${{steps.version.outputs.content}}.tar.gz" "build/${{secrets.GAME_NAME}}_StandaloneLinux64/"
+        
+      - name: Install ZIP
+        run: sudo apt install zip
+      - name: ZIP Windows Build
+        run: zip -r "${{secrets.GAME_NAME}}-StandaloneWindows64-${{steps.version.outputs.content}}.zip" "build/${{secrets.GAME_NAME}}_StandaloneWindows64/"
+      - name: ZIP macOS Build
+        run: zip -r "${{secrets.GAME_NAME}}-StandaloneOSX-${{steps.version.outputs.content}}.zip" "build/${{secrets.GAME_NAME}}_StandaloneOSX/"
+
+###      NON CONLUENT RELEASE METHOD      ###
+#      - name: Release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: |
+#            build/${{secrets.GAME_NAME}}_StandaloneWindows64
+#            build/${{secrets.GAME_NAME}}_StandaloneLinux64
+#            build/${{secrets.GAME_NAME}}_StandaloneOSX
+
+      - uses: ncipollo/release-action@v1
+        with:
+          name: ${{secrets.GAME_NAME}}-${{steps.version.outputs.content}}
+          tag: ${{steps.version.outputs.content}}
+          artifacts: "${{secrets.GAME_NAME}}-StandaloneWindows64-${{steps.version.outputs.content}}.zip,${{secrets.GAME_NAME}}-StandaloneOSX-${{steps.version.outputs.content}}.zip,${{secrets.GAME_NAME}}-StandaloneLinux64-${{steps.version.outputs.content}}.tar.gz"
