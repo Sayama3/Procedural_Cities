@@ -2,7 +2,6 @@ using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Windows;
 
 namespace ProceduralCities
 {
@@ -39,7 +38,7 @@ namespace ProceduralCities
 
         public void SetPath(string path)
         {
-            if(Directory.Exists(path))
+            if(System.IO.Directory.Exists(path))
             {
                 this.path = path;
                 PlayerPrefs.SetString(PictureFolderKey, path);
