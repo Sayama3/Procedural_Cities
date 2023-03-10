@@ -1,32 +1,52 @@
 using System;
-using System.IO;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.Windows;
 
 namespace ProceduralCities
 {
     public class Screenshot : MonoBehaviour
     {
+        private const string PictureFolderKey = "PictureFolder";
         [SerializeField] private string path;
         [SerializeField] private KeyCode screenshotKey = KeyCode.F10;
         [SerializeField, Required] private Camera camera;
-        private string _keyScreen = "screenNumber";
 
-        private void Start()
+        public UnityEvent<string> StartSetPath;
+
+        private void Awake()
         {
-            if (!PlayerPrefs.HasKey(_keyScreen)) PlayerPrefs.SetInt(_keyScreen,0);
+            if (!PlayerPrefs.HasKey(PictureFolderKey))
+            {
+                PlayerPrefs.SetString(PictureFolderKey, Environment.GetFolderPath(Environment.SpecialFolder.MyPictures));
+            }
+
+            this.path = PlayerPrefs.GetString(PictureFolderKey);
+            if(StartSetPath != null) {
+                StartSetPath.Invoke(this.path);
+            }
         }
 
         private void Update()
         {
             if(Input.GetKeyDown(screenshotKey))
             {
-                //File.WriteAllBytes(path, I360Render.Capture(2048, true, camera, true));
-                PlayerPrefs.GetInt(_keyScreen);
                 var date = DateTime.Now;
-                ScreenCapture.CaptureScreenshot(
-                    "Screenshot - " + PlayerPrefs.GetInt(_keyScreen).ToString("000 000") + ".png");
-                PlayerPrefs.SetInt(_keyScreen, PlayerPrefs.GetInt(_keyScreen) + 1);
+                ScreenCapture.CaptureScreenshot("Screenshot - " + date.ToString("dd-MM-yy_HH-mm-ss") + ".png");
+            }
+        }
+
+        public void SetPath(string path)
+        {
+            if(Directory.Exists(path))
+            {
+                this.path = path;
+                PlayerPrefs.SetString(PictureFolderKey, path);
+            }
+            else
+            {
+                Debug.LogWarning($"The path {path} does not exist.");
             }
         }
     }
