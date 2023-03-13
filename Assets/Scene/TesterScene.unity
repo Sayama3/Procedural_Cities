@@ -2461,6 +2461,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1351010002}
+  - component: {fileID: 1351010001}
   m_Layer: 0
   m_Name: GPU
   m_TagString: Untagged
@@ -2468,6 +2469,18 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1351010001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1351010000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff11086ebe3d8740a0417c5cc8d767e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &1351010002
 Transform:
   m_ObjectHideFlags: 0
@@ -3559,7 +3572,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: 
+          m_StringArgument: Initialize
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &1683730652
@@ -3956,8 +3969,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  _material: {fileID: 0}
-  _size: {x: 0, y: 0, z: 0}
+  _size: {x: 10, y: 50, z: 10}
+  towerMaterialsAssembly:
+    BackGroundMat: {fileID: 2100000, guid: 192dbe2000268564a868c2ccd97ec3a4, type: 2}
+    DoorMat: {fileID: 2100000, guid: b5c1880b3c5d38c4c8fa64da1159f111, type: 2}
+    WindowsLitMat: {fileID: 2100000, guid: f027f36e4102c5d43b1c831bc369132f, type: 2}
+    WindowsUnlitMat: {fileID: 2100000, guid: 49f4908e2b6dd5c4ba108ed9cbfb7880, type: 2}
 --- !u!4 &1849875920
 Transform:
   m_ObjectHideFlags: 0
