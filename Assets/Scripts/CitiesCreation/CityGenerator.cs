@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using Sirenix.OdinInspector;
+using NaughtyAttributes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -12,34 +12,34 @@ namespace ProceduralCities.CitiesCreation
     [ExecuteAlways]
     public class CityGenerator : MonoBehaviour
     {
-        [Title("General Parameter :")] 
+        [Header("General Parameter :")] 
         [SerializeField] private bool generateOnStart;
         
-        [Title("Camera :")] 
+        [Header("Camera :")] 
         [SerializeField] private Camera camera;
         [SerializeField] private Vector3 cameraOffset;
         
-        [Title("City Parameters :")]
+        [Header("City Parameters :")]
         [FormerlySerializedAs("terrainSize")]
         [SerializeField,MinValue(1f)] private Vector2Int numberOfTower;
         //[SerializeField] private bool checkOverlap;
 
-        [Title("Tower Parameters :")] 
+        [Header("Tower Parameters :")] 
         [SerializeField] private bool useCurve;
-        [SerializeField,MinValue(1f),HideIf("useCurve")] private float2 towerHeight; [PropertySpace]
-        [SerializeField,ShowIf("useCurve")] private AnimationCurve towerHeightCurve = new AnimationCurve(new [] {new Keyframe(0,50,0,0),new Keyframe(1,120,0,0) }); [PropertySpace]
-        [SerializeField,MinValue(1f)] private float2x2 towerSize; [PropertySpace]
-        [SerializeField,MinValue(0f)] private float2x2 spaceBetweenTower;
+        [SerializeField,MinValue(1f),HideIf("useCurve")] private Vector2 towerHeight; [Space]
+        [SerializeField,ShowIf("useCurve")] private AnimationCurve towerHeightCurve = new AnimationCurve(new [] {new Keyframe(0,50,0,0),new Keyframe(1,120,0,0) }); [Space]
+        [SerializeField] private float2x2 towerSize; [Space]
+        [SerializeField] private float2x2 spaceBetweenTower;
         
         [FormerlySerializedAs("_tempMat")]
-        [Title("Tower Parameters :")]
-        [SerializeField,ListDrawerSettings(AlwaysAddDefaultValue = true,NumberOfItemsPerPage = 2)] 
+        [Header("Tower Parameters :")]
+        [SerializeField] 
         private List<TowerMaterialsAssembly> listTowerAssembly = new List<TowerMaterialsAssembly>();
         [SerializeField] private Material groundMat;
         [SerializeField] private Mesh _mesh;
         [SerializeField,MinValue(float.Epsilon)] private float materialDivider = 1f;
         [SerializeField,MinValue(float.Epsilon)] private float groundMaterialTilling = 1f;
-        [ShowInInspector, ReadOnly] private int NumberOfChildren => transform.childCount;
+        [ShowNativeProperty] private int NumberOfChildren => transform.childCount;
         
 
         //Private :
@@ -56,8 +56,7 @@ namespace ProceduralCities.CitiesCreation
 
         #region City Creation
 
-        [TitleGroup("Methods :")]
-        [Button(ButtonSizes.Medium,ButtonStyle.FoldoutButton)]
+        [Button()]
         public void CreateCities()
         {
             DestroyAllChildren();
@@ -234,8 +233,7 @@ namespace ProceduralCities.CitiesCreation
 
         #endregion
 
-        [TitleGroup("Methods :")]
-        [Button(ButtonSizes.Medium)]
+        [Button()]
         public void DestroyAllChildren()
         {
             if (GPULoader.Instance !=null) GPULoader.Instance.Clear();

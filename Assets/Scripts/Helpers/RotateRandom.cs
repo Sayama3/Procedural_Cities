@@ -1,4 +1,4 @@
-﻿using Sirenix.OdinInspector;
+﻿using NaughtyAttributes;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -9,7 +9,7 @@ namespace ProceduralCities.Helpers
     {
         [SerializeField] private bool _rotationLocal = true;
 
-        [SerializeField, EnumToggleButtons] private SnapAxis _axis = SnapAxis.None;
+        [SerializeField, EnumFlags] private SnapAxis _axis = SnapAxis.None;
 
         [SerializeField] private bool rotateInGame = false;
 
@@ -18,7 +18,7 @@ namespace ProceduralCities.Helpers
             if (rotateInGame) Rotate();
         }
 
-        [Button(ButtonSizes.Medium)]
+        [Button()]
         private void Rotate()
         {
             var currentRotation = _rotationLocal ? transform.localRotation : transform.rotation;

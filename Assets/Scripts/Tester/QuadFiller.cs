@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using Sirenix.OdinInspector;
-using Unity.Mathematics;
+using NaughtyAttributes;
 using UnityEngine;
-using UnityEngine.Internal;
 
 namespace ProceduralCities.Tester
 {
@@ -16,7 +13,7 @@ namespace ProceduralCities.Tester
         [SerializeField,ReadOnly] private List<GameObject> quads;
         [SerializeField, MinValue(0),MaxValue(1),ReadOnly] private Vector2 offset = new Vector2(.5f, .5f);
 
-        [Button(ButtonSizes.Medium)]
+        [Button()]
         public void DrawQuads()
         {
             if (quads != null)

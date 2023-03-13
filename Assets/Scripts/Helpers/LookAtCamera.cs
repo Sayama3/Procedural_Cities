@@ -1,6 +1,6 @@
 ﻿using ProceduralCities.CameraManager;
 using UnityEngine;
-using Sirenix.OdinInspector;
+using NaughtyAttributes;
 
 namespace ProceduralCities.Helpers
 {
@@ -8,7 +8,7 @@ namespace ProceduralCities.Helpers
     public class LookAtCamera : MonoBehaviour
     {
 
-        [SerializeField, EnumToggleButtons] private Axis _axisThatLook = Axis.Z;
+        [SerializeField] private Axis _axisThatLook = Axis.Z;
 
         [SerializeField] private bool _resetRotationBeforeApply = true;
         [SerializeField] private bool rotateInGame = false;
@@ -34,7 +34,7 @@ namespace ProceduralCities.Helpers
             }
         }
 
-        [Button(ButtonSizes.Medium)]
+        [Button()]
         private void SetCamera()
         {
             if (_cameraChanger != null)
@@ -53,7 +53,7 @@ namespace ProceduralCities.Helpers
         }
 
 
-        [Button(ButtonSizes.Medium)]
+        [Button()]
         private void LookCurrentCamera()
         {
             if (_resetRotationBeforeApply)

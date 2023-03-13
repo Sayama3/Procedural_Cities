@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Sirenix.OdinInspector;
+using NaughtyAttributes;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -11,23 +10,25 @@ namespace ProceduralCities.CitiesCreation
     {
         [SerializeField] 
         private Mesh _mesh;
-        [SerializeField,ReadOnly]
+        [SerializeField,DisableIf("IsPlaying")]
         private Vector3 _size;
+        private bool IsPlaying() => Application.isPlaying;
 
-        [SerializeField, ReadOnly] 
+        [SerializeField, DisableIf("IsPlaying")] 
         private TowerMaterialsAssembly towerMaterialsAssembly;
         GameObject quadTemp;
 
         private BoxCollider box;
         private GPULoader _gpuLoader;
 
-        [ShowInInspector, ReadOnly] private float ChildCount => transform.childCount;
+        [ShowNativeProperty] private float ChildCount => transform.childCount;
 
         private static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
 
         //TODO: generate myself the mesh
-        [ShowIf("@ChildCount == 0")]
-        [Button(ButtonSizes.Medium,ButtonStyle.FoldoutButton)]
+        [ShowIf("DontHasChild")]
+        [Button()]
+        public void Initialize() => Initialize(_size, _mesh, towerMaterialsAssembly);
         public void Initialize(Vector3 size,Mesh mesh, TowerMaterialsAssembly materials, float materialDivider = 1f, bool createCollider = false)
         {
             _size = size;
@@ -44,7 +45,8 @@ namespace ProceduralCities.CitiesCreation
                 box.size = size;
             }
         }
-        
+        private bool DontHasChild() => ChildCount == 0;
+
         private void CreateCube (Vector3 size, float matDiv)
         {
             //Drawing a cube this way
@@ -135,7 +137,6 @@ namespace ProceduralCities.CitiesCreation
             
             for (float y = _a.y; y < _b.y; y++)
             {
-                           
                 for (float x = _a.x; x < _b.x; x++)
                 {
                     #region Get Matrix
@@ -216,7 +217,7 @@ namespace ProceduralCities.CitiesCreation
             }
         }
 
-        [Button(ButtonSizes.Medium, ButtonStyle.FoldoutButton)]
+        [Button()]
         private void HardReset()
         {
             for (int i = transform.childCount - 1; i >= 0; i--)

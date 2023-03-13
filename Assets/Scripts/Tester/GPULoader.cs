@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using ProceduralCities.CitiesCreation;
-using Sirenix.OdinInspector;
+using NaughtyAttributes;
 
 namespace ProceduralCities
 {
@@ -25,7 +25,7 @@ namespace ProceduralCities
         }
 
         #endregion
-        [ShowInInspector,ReadOnly]
+
         public Dictionary<TypeObj, List<List<ObjData>>> DicBatches = new Dictionary<TypeObj, List<List<ObjData>>>();
 
         void Update()
